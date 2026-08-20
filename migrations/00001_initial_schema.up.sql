@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS "commute" (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    home_time TIME NOT NULL,
+    home_lat DOUBLE PRECISION NOT NULL,
+    home_lon DOUBLE PRECISION NOT NULL,
+    home_display VARCHAR (150),
+    work_time TIME NOT NULL,
+    work_lat DOUBLE PRECISION NOT NULL,
+    work_lon DOUBLE PRECISION NOT NULL,
+    work_display VARCHAR (150),
+    alert_days BIT(7) NOT NULL DEFAULT B'0000000'
+);
