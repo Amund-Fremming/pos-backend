@@ -29,16 +29,7 @@ mod alert_days_serde {
 
     pub mod option {
         use bit_vec::BitVec;
-        use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-        pub fn serialize<S>(bits: &Option<BitVec>, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            bits.as_ref()
-                .map(|bits| bits.iter().collect::<Vec<bool>>())
-                .serialize(serializer)
-        }
+        use serde::{Deserialize, Deserializer};
 
         pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<BitVec>, D::Error>
         where

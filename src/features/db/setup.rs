@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
 
 pub const MAX_POOL_CONNECTIONS: u32 = 20;

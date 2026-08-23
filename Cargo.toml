@@ -23,3 +23,5 @@ uuid = { version = "1.24.1", features = ["serde", "v4"] }
 chrono = { version = "0.4.45", features = ["serde"] }
 bit-vec = { version = "0.6", features = ["serde"] }
 dotenvy = "0.15.7"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }

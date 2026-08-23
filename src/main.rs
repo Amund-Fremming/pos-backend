@@ -15,6 +15,13 @@ use state::AppState;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("pos_backend=trace,info")),
+        )
+        .init();
+
     dotenvy::dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
@@ -43,6 +50,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:6767")
         .await
         .expect("Failed to bind listener");
+
+    tracing::info!("listening on {}", listener.local_addr()?);
 
     axum::serve(listener, app).await.expect("Server failed");
 

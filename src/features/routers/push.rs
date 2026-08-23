@@ -42,7 +42,11 @@ async fn message(State(state): State<Arc<AppState>>) -> Result<StatusCode, Statu
 
     state
         .get_expo_push_client()
-        .send(&[token], "TEST", "This is a test notification from pos-backend.")
+        .send(
+            &[token],
+            "TEST",
+            "This is a test notification from pos-backend.",
+        )
         .await
         .map(|_| StatusCode::OK)
         .map_err(|_| StatusCode::BAD_GATEWAY)

@@ -63,18 +63,6 @@ pub async fn create(pool: &Pool<Postgres>, user_data: &UserData) -> Result<UserD
     .await
 }
 
-pub async fn delete(pool: &Pool<Postgres>, id: Uuid) -> Result<UserData, sqlx::Error> {
-    sqlx::query_as!(
-        UserData,
-        r#"DELETE FROM user_data WHERE id = $1
-           RETURNING id, home_time, home_lat, home_lon, home_display AS "home_display!",
-                     work_time, work_lat, work_lon, work_display AS "work_display!", alert_days, push_token"#,
-        id,
-    )
-    .fetch_one(pool)
-    .await
-}
-
 pub async fn patch_by_id(
     pool: &Pool<Postgres>,
     id: Uuid,
