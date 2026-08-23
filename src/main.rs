@@ -6,28 +6,31 @@ use std::time::Duration;
 
 use axum::{Json, Router, routing::get};
 
+use features::routers::push::push_router;
 use features::routers::weather::weather_router;
 use serde_json::json;
 use state::AppState;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-    let client = reqwest::Client::builder()
+    let http_client = reqwest::Client::builder()
         .timeout(Duration::from_secs(20))
-        .build();
+        .build()?;
 
     let state = Arc::new(
-        AppState::new(&database_url)
+        AppState::new(&database_url, http_client)
             .await
             .expect("Failed to initialize app state"),
     );
 
     let weather_routes = Router::new().nest("/weather", weather_router(state.clone()));
+    let push_routes = Router::new().nest("/push", push_router(state.clone()));
 
     let app = Router::new()
         .nest("/api/v1", weather_routes)
+        .nest("/api/v1", push_routes)
         .route("/health", get(health));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:6767")
@@ -35,6 +38,8 @@ async fn main() {
         .expect("Failed to bind listener");
 
     axum::serve(listener, app).await.expect("Server failed");
+
+    Ok(())
 }
 
 async fn health() -> Json<serde_json::Value> {
