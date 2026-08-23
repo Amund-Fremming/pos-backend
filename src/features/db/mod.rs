@@ -1,11 +1,57 @@
-pub mod commute;
 pub mod setup;
+pub mod user_data;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// `bit_vec::BitVec` only derives serde for its raw internal representation
+/// (storage words + bit count), which isn't something a JSON client should
+/// have to construct. These (de)serialize it as a plain `bool` array instead,
+/// one entry per day, Mon..Sun.
+mod alert_days_serde {
+    use bit_vec::BitVec;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S>(bits: &BitVec, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        bits.iter().collect::<Vec<bool>>().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<BitVec, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let bools = Vec::<bool>::deserialize(deserializer)?;
+        Ok(BitVec::from_iter(bools))
+    }
+
+    pub mod option {
+        use bit_vec::BitVec;
+        use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+        pub fn serialize<S>(bits: &Option<BitVec>, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            bits.as_ref()
+                .map(|bits| bits.iter().collect::<Vec<bool>>())
+                .serialize(serializer)
+        }
+
+        pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<BitVec>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let bools = Option::<Vec<bool>>::deserialize(deserializer)?;
+            Ok(bools.map(BitVec::from_iter))
+        }
+    }
+}
+
 #[derive(Debug, Clone, sqlx::FromRow, Serialize, Deserialize)]
-pub struct Commute {
+pub struct UserData {
     #[serde(default)]
     pub id: Uuid,
     pub home_time: chrono::NaiveTime,
@@ -16,11 +62,13 @@ pub struct Commute {
     pub work_lat: f64,
     pub work_lon: f64,
     pub work_display: String,
+    #[serde(with = "alert_days_serde")]
     pub alert_days: bit_vec::BitVec,
+    pub push_token: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CommutePatchRequest {
+pub struct UserDataPatchRequest {
     pub home_time: Option<chrono::NaiveTime>,
     pub home_lat: Option<f64>,
     pub home_lon: Option<f64>,
@@ -29,5 +77,7 @@ pub struct CommutePatchRequest {
     pub work_lat: Option<f64>,
     pub work_lon: Option<f64>,
     pub work_display: Option<String>,
+    #[serde(default, with = "alert_days_serde::option")]
     pub alert_days: Option<bit_vec::BitVec>,
+    pub push_token: Option<String>,
 }

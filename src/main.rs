@@ -7,12 +7,14 @@ use std::time::Duration;
 use axum::{Json, Router, routing::get};
 
 use features::routers::push::push_router;
+use features::routers::user_data::user_data_router;
 use features::routers::weather::weather_router;
 use serde_json::json;
 use state::AppState;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenvy::dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
     let http_client = reqwest::Client::builder()
@@ -27,10 +29,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let weather_routes = Router::new().nest("/weather", weather_router(state.clone()));
     let push_routes = Router::new().nest("/push", push_router(state.clone()));
+    let user_data_routes = Router::new().nest("/user-data", user_data_router(state.clone()));
 
     let app = Router::new()
         .nest("/api/v1", weather_routes)
         .nest("/api/v1", push_routes)
+        .nest("/api/v1", user_data_routes)
         .route("/health", get(health));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:6767")

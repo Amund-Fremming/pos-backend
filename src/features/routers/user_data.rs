@@ -7,41 +7,39 @@ use axum::{
     routing::{get, patch, post},
 };
 
-use crate::features::db::{Commute, CommutePatchRequest, commute as commute_db};
+use crate::features::db::{UserData, UserDataPatchRequest, user_data as user_data_db};
 use crate::state::AppState;
 
-pub fn commute_router(state: Arc<AppState>) -> Router {
+pub fn user_data_router(state: Arc<AppState>) -> Router {
     Router::new()
-        .route("/", get(get_commute))
-        .route("/", post(post_commute))
-        .route("/", patch(patch_commute))
+        .route("/", get(get_user_data))
+        .route("/", post(post_user_data))
+        .route("/", patch(patch_user_data))
         .with_state(state)
 }
 
-async fn get_commute(
-    State(state): State<Arc<AppState>>,
-) -> Result<Json<Commute>, StatusCode> {
-    commute_db::get(state.get_pool())
+async fn get_user_data(State(state): State<Arc<AppState>>) -> Result<Json<UserData>, StatusCode> {
+    user_data_db::get(state.get_pool())
         .await
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
-async fn post_commute(
+async fn post_user_data(
     State(state): State<Arc<AppState>>,
-    Json(commute): Json<Commute>,
-) -> Result<Json<Commute>, StatusCode> {
-    commute_db::create(state.get_pool(), &commute)
+    Json(user_data): Json<UserData>,
+) -> Result<Json<UserData>, StatusCode> {
+    user_data_db::create(state.get_pool(), &user_data)
         .await
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
-async fn patch_commute(
+async fn patch_user_data(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<CommutePatchRequest>,
-) -> Result<Json<Commute>, StatusCode> {
-    commute_db::patch(state.get_pool(), &req)
+    Json(req): Json<UserDataPatchRequest>,
+) -> Result<Json<UserData>, StatusCode> {
+    user_data_db::patch(state.get_pool(), &req)
         .await
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)

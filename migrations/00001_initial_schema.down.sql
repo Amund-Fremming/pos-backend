@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS "commute_schedule";
+DROP TABLE IF EXISTS "user_data";

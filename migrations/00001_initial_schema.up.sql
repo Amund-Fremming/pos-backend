@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS "commute" (
+CREATE TABLE IF NOT EXISTS "user_data" (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     home_time TIME NOT NULL,
     home_lat DOUBLE PRECISION NOT NULL,
@@ -8,5 +8,6 @@ CREATE TABLE IF NOT EXISTS "commute" (
     work_lat DOUBLE PRECISION NOT NULL,
     work_lon DOUBLE PRECISION NOT NULL,
     work_display VARCHAR (150),
-    alert_days BIT(7) NOT NULL DEFAULT B'0000000'
+    alert_days BIT(7) NOT NULL DEFAULT B'0000000',
+    push_token VARCHAR(200) UNIQUE
 );

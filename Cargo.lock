@@ -1248,6 +1248,7 @@ dependencies = [
  "axum",
  "bit-vec",
  "chrono",
+ "dotenvy",
  "reqwest",
  "serde",
  "serde_json",
