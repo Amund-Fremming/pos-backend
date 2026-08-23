@@ -3,12 +3,38 @@ use uuid::Uuid;
 
 use crate::features::db::{UserData, UserDataPatchRequest};
 
+/// Blind single-row fetch — used internally (e.g. push notify) where there's
+/// only ever one row and no client-supplied id.
 pub async fn get(pool: &Pool<Postgres>) -> Result<UserData, sqlx::Error> {
     sqlx::query_as!(
         UserData,
         r#"SELECT id, home_time, home_lat, home_lon, home_display AS "home_display!",
                   work_time, work_lat, work_lon, work_display AS "work_display!", alert_days, push_token
            FROM user_data LIMIT 1"#
+    )
+    .fetch_one(pool)
+    .await
+}
+
+/// Rows eligible for a departure alert — anything with a push token registered.
+pub async fn get_all_with_push_token(pool: &Pool<Postgres>) -> Result<Vec<UserData>, sqlx::Error> {
+    sqlx::query_as!(
+        UserData,
+        r#"SELECT id, home_time, home_lat, home_lon, home_display AS "home_display!",
+                  work_time, work_lat, work_lon, work_display AS "work_display!", alert_days, push_token
+           FROM user_data WHERE push_token IS NOT NULL"#
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_by_id(pool: &Pool<Postgres>, id: Uuid) -> Result<UserData, sqlx::Error> {
+    sqlx::query_as!(
+        UserData,
+        r#"SELECT id, home_time, home_lat, home_lon, home_display AS "home_display!",
+                  work_time, work_lat, work_lon, work_display AS "work_display!", alert_days, push_token
+           FROM user_data WHERE id = $1"#,
+        id,
     )
     .fetch_one(pool)
     .await
@@ -49,8 +75,9 @@ pub async fn delete(pool: &Pool<Postgres>, id: Uuid) -> Result<UserData, sqlx::E
     .await
 }
 
-pub async fn patch(
+pub async fn patch_by_id(
     pool: &Pool<Postgres>,
+    id: Uuid,
     req: &UserDataPatchRequest,
 ) -> Result<UserData, sqlx::Error> {
     sqlx::query_as!(
@@ -67,6 +94,7 @@ pub async fn patch(
                work_display = COALESCE($8, work_display),
                alert_days = COALESCE($9, alert_days),
                push_token = COALESCE($10, push_token)
+           WHERE id = $11
            RETURNING id, home_time, home_lat, home_lon, home_display AS "home_display!",
                      work_time, work_lat, work_lon, work_display AS "work_display!", alert_days, push_token"#,
         req.home_time,
@@ -79,6 +107,7 @@ pub async fn patch(
         req.work_display,
         req.alert_days,
         req.push_token,
+        id,
     )
     .fetch_one(pool)
     .await

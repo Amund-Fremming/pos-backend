@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use axum::{Json, Router, routing::get};
 
+use features::cron;
 use features::routers::push::push_router;
 use features::routers::user_data::user_data_router;
 use features::routers::weather::weather_router;
@@ -26,6 +27,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .await
             .expect("Failed to initialize app state"),
     );
+
+    tokio::spawn(cron::spawn(state.clone()));
 
     let weather_routes = Router::new().nest("/weather", weather_router(state.clone()));
     let push_routes = Router::new().nest("/push", push_router(state.clone()));

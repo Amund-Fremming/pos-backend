@@ -1,13 +1,16 @@
 use chrono::{Duration, NaiveTime};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 const USER_AGENT: &str = "pos-backend/0.1.0 github.com/amundfremming/pos-backend";
 const LOCATIONFORECAST_URL: &str = "https://api.met.no/weatherapi/locationforecast/2.0/compact";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Weather {
+    #[serde(rename = "rain")]
     Rainy,
     Cloudy,
+    #[serde(rename = "sun")]
     Sunny,
 }
 
@@ -43,6 +46,7 @@ struct Summary {
     symbol_code: String,
 }
 
+#[derive(Clone)]
 pub struct WeatherClient {
     client: reqwest::Client,
 }
@@ -58,7 +62,7 @@ impl WeatherClient {
         (start, end)
     }
 
-    fn in_range(time: NaiveTime, start: NaiveTime, end: NaiveTime) -> bool {
+    pub(crate) fn in_range(time: NaiveTime, start: NaiveTime, end: NaiveTime) -> bool {
         if start <= end {
             return time >= start && time <= end;
         }

@@ -1,12 +1,14 @@
 use sqlx::{Pool, Postgres};
 
 use crate::features::clients::expo_client::ExpoClient;
+use crate::features::clients::weather_client::WeatherClient;
 use crate::features::db::setup::create_pool;
 
 #[derive(Clone)]
 pub struct AppState {
     pool: Pool<Postgres>,
     expo_push_client: ExpoClient,
+    weather_client: WeatherClient,
 }
 
 impl AppState {
@@ -15,10 +17,12 @@ impl AppState {
         http_client: reqwest::Client,
     ) -> Result<Self, sqlx::Error> {
         let pool = create_pool(connection_string).await?;
-        let expo_push_client = ExpoClient::new(http_client);
+        let expo_push_client = ExpoClient::new(http_client.clone());
+        let weather_client = WeatherClient::new(http_client);
         Ok(Self {
             pool,
             expo_push_client,
+            weather_client,
         })
     }
 
@@ -28,5 +32,9 @@ impl AppState {
 
     pub fn get_expo_push_client(&self) -> &ExpoClient {
         &self.expo_push_client
+    }
+
+    pub fn get_weather_client(&self) -> &WeatherClient {
+        &self.weather_client
     }
 }

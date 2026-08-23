@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, home_time, home_lat, home_lon, home_display AS \"home_display!\",\n                  work_time, work_lat, work_lon, work_display AS \"work_display!\", alert_days, push_token\n           FROM user_data WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "home_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 2,
+        "name": "home_lat",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "home_lon",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "home_display!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "work_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 6,
+        "name": "work_lat",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 7,
+        "name": "work_lon",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 8,
+        "name": "work_display!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "alert_days",
+        "type_info": "Bit"
+      },
+      {
+        "ordinal": 10,
+        "name": "push_token",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "19daf94b32270f9d729852fe926963741c23101942a162c364c1f642f54dc0a1"
+}
