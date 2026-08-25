@@ -63,14 +63,17 @@ async fn notify(state: &Arc<AppState>, user: &UserData, leg: Leg) {
     let Some(token) = user.push_token.clone() else {
         return;
     };
-    let (lat, lon) = match leg {
-        Leg::Home => (user.home_lat, user.home_lon),
-        Leg::Work => (user.work_lat, user.work_lon),
-    };
-
     let weather = match state
         .get_weather_client()
-        .get_weather(user.home_time, user.work_time, lat, lon)
+        .get_weather(
+            user.home_time,
+            user.home_lat,
+            user.home_lon,
+            user.work_time,
+            user.work_lat,
+            user.work_lon,
+            user.commute_minutes,
+        )
         .await
     {
         Ok(weather) => weather,

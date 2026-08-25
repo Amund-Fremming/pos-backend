@@ -27,9 +27,28 @@ async fn get_weather(
         .await
         .map_err(|_| StatusCode::NOT_FOUND)?;
 
+    tracing::debug!(
+        home_time = ?user.home_time,
+        home_lat = user.home_lat,
+        home_lon = user.home_lon,
+        work_time = ?user.work_time,
+        work_lat = user.work_lat,
+        work_lon = user.work_lon,
+        commute_minutes = user.commute_minutes,
+        "travel values"
+    );
+
     state
         .get_weather_client()
-        .get_weather(user.home_time, user.work_time, user.home_lat, user.home_lon)
+        .get_weather(
+            user.home_time,
+            user.home_lat,
+            user.home_lon,
+            user.work_time,
+            user.work_lat,
+            user.work_lon,
+            user.commute_minutes,
+        )
         .await
         .map(Json)
         .map_err(|_| StatusCode::BAD_GATEWAY)

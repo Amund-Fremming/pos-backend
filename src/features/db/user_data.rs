@@ -9,7 +9,7 @@ pub async fn get(pool: &Pool<Postgres>) -> Result<UserData, sqlx::Error> {
     sqlx::query_as!(
         UserData,
         r#"SELECT id, home_time, home_lat, home_lon, home_display AS "home_display!",
-                  work_time, work_lat, work_lon, work_display AS "work_display!", alert_days, push_token
+                  work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token
            FROM user_data LIMIT 1"#
     )
     .fetch_one(pool)
@@ -21,7 +21,7 @@ pub async fn get_all_with_push_token(pool: &Pool<Postgres>) -> Result<Vec<UserDa
     sqlx::query_as!(
         UserData,
         r#"SELECT id, home_time, home_lat, home_lon, home_display AS "home_display!",
-                  work_time, work_lat, work_lon, work_display AS "work_display!", alert_days, push_token
+                  work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token
            FROM user_data WHERE push_token IS NOT NULL"#
     )
     .fetch_all(pool)
@@ -32,7 +32,7 @@ pub async fn get_by_id(pool: &Pool<Postgres>, id: Uuid) -> Result<UserData, sqlx
     sqlx::query_as!(
         UserData,
         r#"SELECT id, home_time, home_lat, home_lon, home_display AS "home_display!",
-                  work_time, work_lat, work_lon, work_display AS "work_display!", alert_days, push_token
+                  work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token
            FROM user_data WHERE id = $1"#,
         id,
     )
@@ -44,10 +44,10 @@ pub async fn create(pool: &Pool<Postgres>, user_data: &UserData) -> Result<UserD
     sqlx::query_as!(
         UserData,
         r#"INSERT INTO user_data
-               (home_time, home_lat, home_lon, home_display, work_time, work_lat, work_lon, work_display, alert_days, push_token)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+               (home_time, home_lat, home_lon, home_display, work_time, work_lat, work_lon, work_display, commute_minutes, alert_days, push_token)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
            RETURNING id, home_time, home_lat, home_lon, home_display AS "home_display!",
-                     work_time, work_lat, work_lon, work_display AS "work_display!", alert_days, push_token"#,
+                     work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token"#,
         user_data.home_time,
         user_data.home_lat,
         user_data.home_lon,
@@ -56,6 +56,7 @@ pub async fn create(pool: &Pool<Postgres>, user_data: &UserData) -> Result<UserD
         user_data.work_lat,
         user_data.work_lon,
         user_data.work_display,
+        user_data.commute_minutes,
         user_data.alert_days,
         user_data.push_token,
     )
@@ -80,11 +81,12 @@ pub async fn patch_by_id(
                work_lat = COALESCE($6, work_lat),
                work_lon = COALESCE($7, work_lon),
                work_display = COALESCE($8, work_display),
-               alert_days = COALESCE($9, alert_days),
-               push_token = COALESCE($10, push_token)
-           WHERE id = $11
+               commute_minutes = COALESCE($9, commute_minutes),
+               alert_days = COALESCE($10, alert_days),
+               push_token = COALESCE($11, push_token)
+           WHERE id = $12
            RETURNING id, home_time, home_lat, home_lon, home_display AS "home_display!",
-                     work_time, work_lat, work_lon, work_display AS "work_display!", alert_days, push_token"#,
+                     work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token"#,
         req.home_time,
         req.home_lat,
         req.home_lon,
@@ -93,6 +95,7 @@ pub async fn patch_by_id(
         req.work_lat,
         req.work_lon,
         req.work_display,
+        req.commute_minutes,
         req.alert_days,
         req.push_token,
         id,

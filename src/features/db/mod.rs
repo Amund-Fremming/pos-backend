@@ -53,6 +53,7 @@ pub struct UserData {
     pub work_lat: f64,
     pub work_lon: f64,
     pub work_display: String,
+    pub commute_minutes: i32,
     #[serde(with = "alert_days_serde")]
     pub alert_days: bit_vec::BitVec,
     pub push_token: Option<String>,
@@ -68,6 +69,7 @@ pub struct UserDataPatchRequest {
     pub work_lat: Option<f64>,
     pub work_lon: Option<f64>,
     pub work_display: Option<String>,
+    pub commute_minutes: Option<i32>,
     #[serde(default, with = "alert_days_serde::option")]
     pub alert_days: Option<bit_vec::BitVec>,
     pub push_token: Option<String>,

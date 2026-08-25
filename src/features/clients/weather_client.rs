@@ -56,10 +56,10 @@ impl WeatherClient {
         Self { client }
     }
 
-    fn time_window(anchor: NaiveTime) -> (NaiveTime, NaiveTime) {
-        let start = anchor - Duration::minutes(30);
-        let end = anchor + Duration::hours(1);
-        (start, end)
+    /// Precise commute window: departure time through departure + commute duration, no padding either side.
+    fn time_window(departure: NaiveTime, commute_minutes: i32) -> (NaiveTime, NaiveTime) {
+        let end = departure + Duration::minutes(commute_minutes as i64);
+        (departure, end)
     }
 
     pub(crate) fn in_range(time: NaiveTime, start: NaiveTime, end: NaiveTime) -> bool {
@@ -74,6 +74,7 @@ impl WeatherClient {
             .iter()
             .any(|code| code.contains("rain") || code.contains("sleet") || code.contains("snow"))
         {
+            tracing::debug!(?symbol_codes, "classified as Rainy");
             return Weather::Rainy;
         }
         let sunny = symbol_codes
@@ -85,20 +86,22 @@ impl WeatherClient {
             .filter(|code| code.contains("cloudy") || code.contains("fog"))
             .count();
 
-        if sunny > cloudy {
+        let weather = if sunny > cloudy {
             Weather::Sunny
         } else {
             Weather::Cloudy
-        }
+        };
+        tracing::debug!(?symbol_codes, sunny, cloudy, ?weather, "classified");
+        weather
     }
 
-    pub async fn get_weather(
+    async fn symbol_codes_in_window(
         &self,
-        home: NaiveTime,
-        work: NaiveTime,
         lat: f64,
         lon: f64,
-    ) -> Result<Weather, reqwest::Error> {
+        start: NaiveTime,
+        end: NaiveTime,
+    ) -> Result<Vec<String>, reqwest::Error> {
         let response = self
             .client
             .get(LOCATIONFORECAST_URL)
@@ -109,18 +112,11 @@ impl WeatherClient {
             .json::<ForecastResponse>()
             .await?;
 
-        let windows = [Self::time_window(home), Self::time_window(work)];
-
         let symbol_codes: Vec<String> = response
             .properties
             .timeseries
             .into_iter()
-            .filter(|entry| {
-                let time = entry.time.time();
-                windows
-                    .iter()
-                    .any(|(start, end)| Self::in_range(time, *start, *end))
-            })
+            .filter(|entry| Self::in_range(entry.time.time(), start, end))
             .filter_map(|entry| {
                 entry
                     .data
@@ -129,6 +125,38 @@ impl WeatherClient {
                     .map(|period| period.summary.symbol_code)
             })
             .collect();
+
+        tracing::debug!(lat, lon, ?start, ?end, ?symbol_codes, "fetched symbol codes");
+
+        Ok(symbol_codes)
+    }
+
+    /// Checks weather across both commute legs (home->work and work->home), covering
+    /// both the departure and arrival locations over each precise departure -> departure+commute window.
+    /// Combined because what matters is whether rain shows up in any of these intervals.
+    pub async fn get_weather(
+        &self,
+        home_time: NaiveTime,
+        home_lat: f64,
+        home_lon: f64,
+        work_time: NaiveTime,
+        work_lat: f64,
+        work_lon: f64,
+        commute_minutes: i32,
+    ) -> Result<Weather, reqwest::Error> {
+        let mut symbol_codes = Vec::new();
+
+        for departure in [home_time, work_time] {
+            let (start, end) = Self::time_window(departure, commute_minutes);
+            symbol_codes.extend(
+                self.symbol_codes_in_window(home_lat, home_lon, start, end)
+                    .await?,
+            );
+            symbol_codes.extend(
+                self.symbol_codes_in_window(work_lat, work_lon, start, end)
+                    .await?,
+            );
+        }
 
         Ok(Self::classify(&symbol_codes))
     }

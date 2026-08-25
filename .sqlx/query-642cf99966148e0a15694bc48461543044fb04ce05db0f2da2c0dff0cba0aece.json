@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM user_data WHERE id = $1\n           RETURNING id, home_time, home_lat, home_lon, home_display AS \"home_display!\",\n                     work_time, work_lat, work_lon, work_display AS \"work_display!\", alert_days, push_token",
+  "query": "SELECT id, home_time, home_lat, home_lon, home_display AS \"home_display!\",\n                  work_time, work_lat, work_lon, work_display AS \"work_display!\", commute_minutes, alert_days, push_token\n           FROM user_data WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -50,11 +50,16 @@
       },
       {
         "ordinal": 9,
+        "name": "commute_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
         "name": "alert_days",
         "type_info": "Bit"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "push_token",
         "type_info": "Varchar"
       }
@@ -75,8 +80,9 @@
       false,
       true,
       false,
+      false,
       true
     ]
   },
-  "hash": "0e91a31d207d3e34df87cd35c0af003f1eedcaef791f3e0b13799fc63f0de228"
+  "hash": "642cf99966148e0a15694bc48461543044fb04ce05db0f2da2c0dff0cba0aece"
 }

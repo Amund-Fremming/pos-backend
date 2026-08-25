@@ -47,7 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api/v1", user_data_routes)
         .route("/health", get(health));
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:6767")
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:6969")
         .await
         .expect("Failed to bind listener");
 
