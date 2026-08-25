@@ -8,7 +8,7 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::features::db::{UserData, UserDataPatchRequest, user_data as user_data_db};
+use crate::db::{UserData, UserDataPatchRequest, user_data as user_data_db};
 use crate::state::AppState;
 
 pub fn user_data_router(state: Arc<AppState>) -> Router {

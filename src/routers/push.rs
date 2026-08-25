@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use serde::Deserialize;
 
-use crate::features::db::user_data as user_data_db;
+use crate::db::user_data as user_data_db;
 use crate::state::AppState;
 
 pub fn push_router(state: Arc<AppState>) -> Router {

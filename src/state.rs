@@ -1,8 +1,8 @@
 use sqlx::{Pool, Postgres};
 
-use crate::features::clients::expo_client::ExpoClient;
-use crate::features::clients::weather_client::WeatherClient;
-use crate::features::db::setup::create_pool;
+use crate::clients::expo_client::ExpoClient;
+use crate::clients::weather_client::WeatherClient;
+use crate::db::setup::create_pool;
 
 #[derive(Clone)]
 pub struct AppState {

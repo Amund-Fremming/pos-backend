@@ -3,16 +3,11 @@ use std::time::Duration as StdDuration;
 
 use chrono::{Datelike, Duration, Local};
 
-use crate::features::clients::weather_client::{Weather, WeatherClient};
-use crate::features::db::{UserData, user_data as user_data_db};
+use crate::clients::weather_client::{Weather, WeatherClient};
+use crate::db::{UserData, user_data as user_data_db};
 use crate::state::AppState;
 
 const TICK_INTERVAL: StdDuration = StdDuration::from_secs(15 * 60);
-
-enum Leg {
-    Home,
-    Work,
-}
 
 /// Runs forever: every 15 minutes, alerts anyone whose home/work departure
 /// falls in the next 15-minute window with a weather-based push notification.
@@ -50,16 +45,16 @@ async fn run_once(state: &Arc<AppState>) {
 
         if WeatherClient::in_range(user.home_time, window_start, window_end) {
             tracing::trace!(user_id = %user.id, "cron: home leg due");
-            notify(state, &user, Leg::Home).await;
+            notify(state, &user).await;
         }
         if WeatherClient::in_range(user.work_time, window_start, window_end) {
             tracing::trace!(user_id = %user.id, "cron: work leg due");
-            notify(state, &user, Leg::Work).await;
+            notify(state, &user).await;
         }
     }
 }
 
-async fn notify(state: &Arc<AppState>, user: &UserData, leg: Leg) {
+async fn notify(state: &Arc<AppState>, user: &UserData) {
     let Some(token) = user.push_token.clone() else {
         return;
     };

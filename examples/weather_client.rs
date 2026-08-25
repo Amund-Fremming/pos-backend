@@ -1,4 +1,4 @@
-#[path = "../src/features/clients/mod.rs"]
+#[path = "../src/clients/mod.rs"]
 mod clients;
 
 use chrono::NaiveTime;
@@ -23,13 +23,7 @@ async fn main() {
 
     let weather = client
         .get_weather(
-            home_time,
-            OSLO_LAT,
-            OSLO_LON,
-            work_time,
-            OSLO_LAT,
-            OSLO_LON,
-            30,
+            home_time, OSLO_LAT, OSLO_LON, work_time, OSLO_LAT, OSLO_LON, 30,
         )
         .await
         .expect("Failed to fetch weather");

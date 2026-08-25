@@ -1,7 +1,7 @@
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use crate::features::db::{UserData, UserDataPatchRequest};
+use crate::db::{UserData, UserDataPatchRequest};
 
 /// Blind single-row fetch — used internally (e.g. push notify) where there's
 /// only ever one row and no client-supplied id.

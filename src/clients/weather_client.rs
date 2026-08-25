@@ -97,6 +97,7 @@ impl WeatherClient {
 
     async fn symbol_codes_in_window(
         &self,
+        location: &str,
         lat: f64,
         lon: f64,
         start: NaiveTime,
@@ -112,23 +113,26 @@ impl WeatherClient {
             .json::<ForecastResponse>()
             .await?;
 
-        let symbol_codes: Vec<String> = response
+        let entries: Vec<(chrono::DateTime<chrono::Utc>, String)> = response
             .properties
             .timeseries
             .into_iter()
             .filter(|entry| Self::in_range(entry.time.time(), start, end))
             .filter_map(|entry| {
+                let time = entry.time;
                 entry
                     .data
                     .next_1_hours
                     .or(entry.data.next_6_hours)
-                    .map(|period| period.summary.symbol_code)
+                    .map(|period| (time, period.summary.symbol_code))
             })
             .collect();
 
-        tracing::debug!(lat, lon, ?start, ?end, ?symbol_codes, "fetched symbol codes");
+        for (time, code) in &entries {
+            tracing::debug!("{time} ({location}): {code}");
+        }
 
-        Ok(symbol_codes)
+        Ok(entries.into_iter().map(|(_, code)| code).collect())
     }
 
     /// Checks weather across both commute legs (home->work and work->home), covering
@@ -149,11 +153,11 @@ impl WeatherClient {
         for departure in [home_time, work_time] {
             let (start, end) = Self::time_window(departure, commute_minutes);
             symbol_codes.extend(
-                self.symbol_codes_in_window(home_lat, home_lon, start, end)
+                self.symbol_codes_in_window("home", home_lat, home_lon, start, end)
                     .await?,
             );
             symbol_codes.extend(
-                self.symbol_codes_in_window(work_lat, work_lon, start, end)
+                self.symbol_codes_in_window("work", work_lat, work_lon, start, end)
                     .await?,
             );
         }

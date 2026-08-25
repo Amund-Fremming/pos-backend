@@ -1,4 +1,7 @@
-mod features;
+mod clients;
+mod cron;
+mod db;
+mod routers;
 mod state;
 
 use std::sync::Arc;
@@ -6,10 +9,9 @@ use std::time::Duration;
 
 use axum::{Json, Router, routing::get};
 
-use features::cron;
-use features::routers::push::push_router;
-use features::routers::user_data::user_data_router;
-use features::routers::weather::weather_router;
+use routers::push::push_router;
+use routers::user_data::user_data_router;
+use routers::weather::weather_router;
 use serde_json::json;
 use state::AppState;
 

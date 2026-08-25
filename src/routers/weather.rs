@@ -8,8 +8,8 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::features::clients::weather_client::Weather;
-use crate::features::db::user_data as user_data_db;
+use crate::clients::weather_client::Weather;
+use crate::db::user_data as user_data_db;
 use crate::state::AppState;
 
 pub fn weather_router(state: Arc<AppState>) -> Router {
