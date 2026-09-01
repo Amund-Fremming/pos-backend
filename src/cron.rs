@@ -1,22 +1,40 @@
 use std::sync::Arc;
 use std::time::Duration as StdDuration;
 
-use chrono::{Datelike, Duration, Local};
+use chrono::{Datelike, Duration, Local, NaiveDate, Timelike};
 
 use crate::clients::weather_client::{Weather, WeatherClient};
 use crate::db::{UserData, user_data as user_data_db};
 use crate::state::AppState;
 
-const TICK_INTERVAL: StdDuration = StdDuration::from_secs(15 * 60);
+const TICK_INTERVAL: StdDuration = StdDuration::from_secs(5 * 60);
+const LOOKAHEAD: Duration = Duration::minutes(15);
 
-/// Runs forever: every 15 minutes, alerts anyone whose home/work departure
-/// falls in the next 15-minute window with a weather-based push notification.
+/// Runs forever: every 5 minutes, on the round clock mark, alerts anyone
+/// whose home/work departure is exactly 15 minutes out — but only if it's
+/// rainy, and only once per user per day.
 pub async fn spawn(state: Arc<AppState>) {
+    align_to_tick().await;
     let mut interval = tokio::time::interval(TICK_INTERVAL);
     loop {
         interval.tick().await;
         run_once(&state).await;
     }
+}
+
+/// Sleeps until the next round 5-minute wall-clock mark (:00, :05, :10, ...),
+/// so ticks land on times like 06:45 rather than wherever the process booted.
+async fn align_to_tick() {
+    let now = Local::now();
+    let interval_secs = TICK_INTERVAL.as_secs() as i64;
+    let secs_into_hour = (now.minute() as i64) * 60 + now.second() as i64;
+    let remainder = secs_into_hour % interval_secs;
+    let delay = if remainder == 0 {
+        0
+    } else {
+        interval_secs - remainder
+    };
+    tokio::time::sleep(StdDuration::from_secs(delay as u64)).await;
 }
 
 async fn run_once(state: &Arc<AppState>) {
@@ -32,9 +50,10 @@ async fn run_once(state: &Arc<AppState>) {
     tracing::trace!(count = users.len(), "cron: loaded users with push token");
 
     let now = Local::now();
+    let today = now.date_naive();
     let weekday = now.weekday().num_days_from_monday() as usize;
-    let window_start = (now + Duration::minutes(15)).time();
-    let window_end = (now + Duration::minutes(30)).time();
+    let window_start = (now + LOOKAHEAD).time();
+    let window_end = (now + LOOKAHEAD + Duration::minutes(5)).time();
     tracing::trace!(%weekday, %window_start, %window_end, "cron: alert window");
 
     for user in users {
@@ -42,19 +61,26 @@ async fn run_once(state: &Arc<AppState>) {
             tracing::trace!(user_id = %user.id, "cron: not alerting today, skipping");
             continue;
         }
+        if user.last_alerted_date == Some(today) {
+            tracing::trace!(user_id = %user.id, "cron: already alerted today, skipping");
+            continue;
+        }
 
-        if WeatherClient::in_range(user.home_time, window_start, window_end) {
-            tracing::trace!(user_id = %user.id, "cron: home leg due");
-            notify(state, &user).await;
+        let home_due = WeatherClient::in_range(user.home_time, window_start, window_end);
+        let work_due = WeatherClient::in_range(user.work_time, window_start, window_end);
+        if !home_due && !work_due {
+            continue;
         }
-        if WeatherClient::in_range(user.work_time, window_start, window_end) {
-            tracing::trace!(user_id = %user.id, "cron: work leg due");
-            notify(state, &user).await;
-        }
+
+        tracing::trace!(user_id = %user.id, home_due, work_due, "cron: departure due");
+        maybe_notify(state, &user, today).await;
     }
 }
 
-async fn notify(state: &Arc<AppState>, user: &UserData) {
+/// Sends a rain alert if — and only if — it's actually going to rain on the
+/// commute. Marks the user as alerted for `today` on success, so this fires
+/// at most once per day per user.
+async fn maybe_notify(state: &Arc<AppState>, user: &UserData, today: NaiveDate) {
     let Some(token) = user.push_token.clone() else {
         return;
     };
@@ -79,21 +105,23 @@ async fn notify(state: &Arc<AppState>, user: &UserData) {
     };
     tracing::trace!(user_id = %user.id, ?weather, "cron: weather fetched");
 
-    let (title, body) = copy_for(weather);
+    if weather != Weather::Rainy {
+        tracing::trace!(user_id = %user.id, "cron: no rain, not alerting");
+        return;
+    }
+
     match state
         .get_expo_push_client()
-        .send(&[token], title, body)
+        .send(&[token], "Ta med regnjakka", "Regn er ventet på turen din.")
         .await
     {
-        Ok(_) => tracing::info!(user_id = %user.id, "cron: push sent"),
+        Ok(_) => {
+            tracing::info!(user_id = %user.id, "cron: push sent");
+            if let Err(error) = user_data_db::mark_alerted(state.get_pool(), user.id, today).await
+            {
+                tracing::error!(user_id = %user.id, %error, "cron: failed to record alert");
+            }
+        }
         Err(error) => tracing::error!(user_id = %user.id, %error, "cron: failed to send push"),
-    }
-}
-
-fn copy_for(weather: Weather) -> (&'static str, &'static str) {
-    match weather {
-        Weather::Rainy => ("Ta med regnjakka", "Regn er ventet på turen din."),
-        Weather::Sunny => ("La regnjakka ligge hjemme", "Tørt vær på turen din."),
-        Weather::Cloudy => ("Jakke ja, regnjakke nei", "Overskyet og tørt på turen din."),
     }
 }

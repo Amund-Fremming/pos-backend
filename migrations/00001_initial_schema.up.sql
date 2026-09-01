@@ -10,5 +10,6 @@ CREATE TABLE IF NOT EXISTS "user_data" (
     work_display VARCHAR (150),
     commute_minutes INTEGER NOT NULL,
     alert_days BIT(7) NOT NULL DEFAULT B'0000000',
-    push_token VARCHAR(200) UNIQUE
+    push_token VARCHAR(200) UNIQUE,
+    last_alerted_date DATE
 );

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, home_time, home_lat, home_lon, home_display AS \"home_display!\",\n                  work_time, work_lat, work_lon, work_display AS \"work_display!\", commute_minutes, alert_days, push_token\n           FROM user_data LIMIT 1",
+  "query": "INSERT INTO user_data\n               (home_time, home_lat, home_lon, home_display, work_time, work_lat, work_lon, work_display, commute_minutes, alert_days, push_token)\n           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n           RETURNING id, home_time, home_lat, home_lon, home_display AS \"home_display!\",\n                     work_time, work_lat, work_lon, work_display AS \"work_display!\", commute_minutes, alert_days, push_token, last_alerted_date",
   "describe": {
     "columns": [
       {
@@ -62,10 +62,27 @@
         "ordinal": 11,
         "name": "push_token",
         "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "last_alerted_date",
+        "type_info": "Date"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Time",
+        "Float8",
+        "Float8",
+        "Varchar",
+        "Time",
+        "Float8",
+        "Float8",
+        "Varchar",
+        "Int4",
+        "Bit",
+        "Varchar"
+      ]
     },
     "nullable": [
       false,
@@ -79,8 +96,9 @@
       true,
       false,
       false,
+      true,
       true
     ]
   },
-  "hash": "129061a0a6f8a48bd33311242ea05d4790e7fa378edcf27869a6b747d67c0cb7"
+  "hash": "e85820361d72d0278dcf569d26fb4b86f50d4d24c5b984ef926f322fd6871b27"
 }

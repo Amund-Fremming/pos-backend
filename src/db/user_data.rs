@@ -9,7 +9,7 @@ pub async fn get(pool: &Pool<Postgres>) -> Result<UserData, sqlx::Error> {
     sqlx::query_as!(
         UserData,
         r#"SELECT id, home_time, home_lat, home_lon, home_display AS "home_display!",
-                  work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token
+                  work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token, last_alerted_date
            FROM user_data LIMIT 1"#
     )
     .fetch_one(pool)
@@ -21,7 +21,7 @@ pub async fn get_all_with_push_token(pool: &Pool<Postgres>) -> Result<Vec<UserDa
     sqlx::query_as!(
         UserData,
         r#"SELECT id, home_time, home_lat, home_lon, home_display AS "home_display!",
-                  work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token
+                  work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token, last_alerted_date
            FROM user_data WHERE push_token IS NOT NULL"#
     )
     .fetch_all(pool)
@@ -32,7 +32,7 @@ pub async fn get_by_id(pool: &Pool<Postgres>, id: Uuid) -> Result<UserData, sqlx
     sqlx::query_as!(
         UserData,
         r#"SELECT id, home_time, home_lat, home_lon, home_display AS "home_display!",
-                  work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token
+                  work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token, last_alerted_date
            FROM user_data WHERE id = $1"#,
         id,
     )
@@ -47,7 +47,7 @@ pub async fn create(pool: &Pool<Postgres>, user_data: &UserData) -> Result<UserD
                (home_time, home_lat, home_lon, home_display, work_time, work_lat, work_lon, work_display, commute_minutes, alert_days, push_token)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
            RETURNING id, home_time, home_lat, home_lon, home_display AS "home_display!",
-                     work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token"#,
+                     work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token, last_alerted_date"#,
         user_data.home_time,
         user_data.home_lat,
         user_data.home_lon,
@@ -86,7 +86,7 @@ pub async fn patch_by_id(
                push_token = COALESCE($11, push_token)
            WHERE id = $12
            RETURNING id, home_time, home_lat, home_lon, home_display AS "home_display!",
-                     work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token"#,
+                     work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token, last_alerted_date"#,
         req.home_time,
         req.home_lat,
         req.home_lon,
@@ -102,4 +102,20 @@ pub async fn patch_by_id(
     )
     .fetch_one(pool)
     .await
+}
+
+/// Records that a rain alert was already sent today, so `cron` won't send a second one.
+pub async fn mark_alerted(
+    pool: &Pool<Postgres>,
+    id: Uuid,
+    date: chrono::NaiveDate,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE user_data SET last_alerted_date = $1 WHERE id = $2",
+        date,
+        id,
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
 }

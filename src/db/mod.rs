@@ -57,6 +57,8 @@ pub struct UserData {
     #[serde(with = "alert_days_serde")]
     pub alert_days: bit_vec::BitVec,
     pub push_token: Option<String>,
+    #[serde(default)]
+    pub last_alerted_date: Option<chrono::NaiveDate>,
 }
 
 #[derive(Debug, Deserialize)]
