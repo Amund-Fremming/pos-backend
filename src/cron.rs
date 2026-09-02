@@ -105,6 +105,9 @@ async fn maybe_notify(state: &Arc<AppState>, user: &UserData, today: NaiveDate) 
     };
     tracing::trace!(user_id = %user.id, ?weather, "cron: weather fetched");
 
+    // 🚨 TODO - remove this to undo mock
+    let weather = Weather::Rainy;
+
     if weather != Weather::Rainy {
         tracing::trace!(user_id = %user.id, "cron: no rain, not alerting");
         return;
