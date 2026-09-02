@@ -3,19 +3,6 @@ use uuid::Uuid;
 
 use crate::db::{UserData, UserDataPatchRequest};
 
-/// Blind single-row fetch — used internally (e.g. push notify) where there's
-/// only ever one row and no client-supplied id.
-pub async fn get(pool: &Pool<Postgres>) -> Result<UserData, sqlx::Error> {
-    sqlx::query_as!(
-        UserData,
-        r#"SELECT id, home_time, home_lat, home_lon, home_display AS "home_display!",
-                  work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token, last_alerted_date
-           FROM user_data LIMIT 1"#
-    )
-    .fetch_one(pool)
-    .await
-}
-
 /// Rows eligible for a departure alert — anything with a push token registered.
 pub async fn get_all_with_push_token(pool: &Pool<Postgres>) -> Result<Vec<UserData>, sqlx::Error> {
     sqlx::query_as!(

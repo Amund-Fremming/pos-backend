@@ -14,6 +14,8 @@ use routers::weather::weather_router;
 use serde_json::json;
 use state::AppState;
 
+use crate::cron::weather;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
@@ -36,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .expect("Failed to initialize app state"),
     );
 
-    tokio::spawn(weather_cron::spawn(state.clone()));
+    tokio::spawn(weather::spawn(state.clone()));
 
     let weather_routes = Router::new().nest("/weather", weather_router(state.clone()));
     let user_data_routes = Router::new().nest("/user-data", user_data_router(state.clone()));
