@@ -120,8 +120,7 @@ async fn maybe_notify(state: &Arc<AppState>, user: &UserData, today: NaiveDate) 
     {
         Ok(_) => {
             tracing::info!(user_id = %user.id, "cron: push sent");
-            if let Err(error) = user_data_db::mark_alerted(state.get_pool(), user.id, today).await
-            {
+            if let Err(error) = user_data_db::mark_alerted(state.get_pool(), user.id, today).await {
                 tracing::error!(user_id = %user.id, %error, "cron: failed to record alert");
             }
         }

@@ -9,7 +9,6 @@ use std::time::Duration;
 
 use axum::{Json, Router, routing::get};
 
-use routers::push::push_router;
 use routers::user_data::user_data_router;
 use routers::weather::weather_router;
 use serde_json::json;
@@ -37,15 +36,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .expect("Failed to initialize app state"),
     );
 
-    tokio::spawn(cron::spawn(state.clone()));
+    tokio::spawn(weather_cron::spawn(state.clone()));
 
     let weather_routes = Router::new().nest("/weather", weather_router(state.clone()));
-    let push_routes = Router::new().nest("/push", push_router(state.clone()));
     let user_data_routes = Router::new().nest("/user-data", user_data_router(state.clone()));
 
     let app = Router::new()
         .nest("/api/v1", weather_routes)
-        .nest("/api/v1", push_routes)
         .nest("/api/v1", user_data_routes)
         .route("/health", get(health));
 
