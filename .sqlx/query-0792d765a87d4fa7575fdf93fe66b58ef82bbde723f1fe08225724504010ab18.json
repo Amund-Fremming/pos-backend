@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, home_time, home_lat, home_lon, home_display AS \"home_display!\",\n                  work_time, work_lat, work_lon, work_display AS \"work_display!\", commute_minutes, alert_days, push_token, last_alerted_date\n           FROM user_data LIMIT 1",
+  "query": "INSERT INTO user_data\n               (home_time, home_lat, home_lon, home_display, work_time, work_lat, work_lon, work_display, commute_minutes, alert_days, push_token)\n           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n           ON CONFLICT (push_token) DO UPDATE SET\n               home_time = EXCLUDED.home_time,\n               home_lat = EXCLUDED.home_lat,\n               home_lon = EXCLUDED.home_lon,\n               home_display = EXCLUDED.home_display,\n               work_time = EXCLUDED.work_time,\n               work_lat = EXCLUDED.work_lat,\n               work_lon = EXCLUDED.work_lon,\n               work_display = EXCLUDED.work_display,\n               commute_minutes = EXCLUDED.commute_minutes,\n               alert_days = EXCLUDED.alert_days,\n               last_alerted_date = NULL\n           RETURNING id, home_time, home_lat, home_lon, home_display AS \"home_display!\",\n                     work_time, work_lat, work_lon, work_display AS \"work_display!\", commute_minutes, alert_days, push_token, last_alerted_date",
   "describe": {
     "columns": [
       {
@@ -70,7 +70,19 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Time",
+        "Float8",
+        "Float8",
+        "Varchar",
+        "Time",
+        "Float8",
+        "Float8",
+        "Varchar",
+        "Int4",
+        "Bit",
+        "Varchar"
+      ]
     },
     "nullable": [
       false,
@@ -88,5 +100,5 @@
       true
     ]
   },
-  "hash": "f9d1aae1113e96b13d6afc2988ed04b62f4ef30aa454ef0b3ef4c295b05407d2"
+  "hash": "0792d765a87d4fa7575fdf93fe66b58ef82bbde723f1fe08225724504010ab18"
 }
