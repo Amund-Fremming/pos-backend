@@ -62,23 +62,28 @@ async fn run_once(state: &Arc<AppState>) {
     tracing::info!(count = users.len(), %weekday, %window_start, %window_end, "cron: checking users against alert window");
 
     for user in users {
-        if user.alert_days.get(weekday) != Some(true) {
-            tracing::trace!(user_id = %user.id, "cron: not alerting today, skipping");
-            continue;
-        }
-        if user.last_alerted_date == Some(today) {
-            tracing::trace!(user_id = %user.id, "cron: already alerted today, skipping");
-            continue;
-        }
-
-        let home_due = WeatherClient::in_range(user.home_time, window_start, window_end);
-        let work_due = WeatherClient::in_range(user.work_time, window_start, window_end);
-        if !home_due && !work_due {
-            continue;
-        }
-
-        tracing::info!(user_id = %user.id, home_due, work_due, "cron: user due in alert window");
+        // 🚨 TODO - remove: bypasses checks below to force-notify everyone for debugging
+        tracing::info!(user_id = %user.id, "cron: DEBUG force-notifying, bypassing window checks");
         maybe_notify(state, &user, today).await;
+        continue;
+
+        // if user.alert_days.get(weekday) != Some(true) {
+        //     tracing::trace!(user_id = %user.id, "cron: not alerting today, skipping");
+        //     continue;
+        // }
+        // if user.last_alerted_date == Some(today) {
+        //     tracing::trace!(user_id = %user.id, "cron: already alerted today, skipping");
+        //     continue;
+        // }
+        //
+        // let home_due = WeatherClient::in_range(user.home_time, window_start, window_end);
+        // let work_due = WeatherClient::in_range(user.work_time, window_start, window_end);
+        // if !home_due && !work_due {
+        //     continue;
+        // }
+        //
+        // tracing::info!(user_id = %user.id, home_due, work_due, "cron: user due in alert window");
+        // maybe_notify(state, &user, today).await;
     }
 }
 
