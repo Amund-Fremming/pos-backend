@@ -54,14 +54,12 @@ async fn run_once(state: &Arc<AppState>) {
             return;
         }
     };
-    tracing::trace!(count = users.len(), "cron: loaded users with push token");
-
     let now = now_oslo();
     let today = now.date_naive();
     let weekday = now.weekday().num_days_from_monday() as usize;
     let window_start = (now + LOOKAHEAD).time();
     let window_end = (now + LOOKAHEAD + Duration::minutes(5)).time();
-    tracing::trace!(%weekday, %window_start, %window_end, "cron: alert window");
+    tracing::info!(count = users.len(), %weekday, %window_start, %window_end, "cron: checking users against alert window");
 
     for user in users {
         if user.alert_days.get(weekday) != Some(true) {
@@ -79,7 +77,7 @@ async fn run_once(state: &Arc<AppState>) {
             continue;
         }
 
-        tracing::trace!(user_id = %user.id, home_due, work_due, "cron: departure due");
+        tracing::info!(user_id = %user.id, home_due, work_due, "cron: user due in alert window");
         maybe_notify(state, &user, today).await;
     }
 }
@@ -120,13 +118,14 @@ async fn maybe_notify(state: &Arc<AppState>, user: &UserData, today: NaiveDate) 
         return;
     }
 
+    tracing::info!(user_id = %user.id, "cron: sending push notification");
     match state
         .get_expo_push_client()
         .send(&[token], "Ta med regnjakka", "Regn er ventet på turen din.")
         .await
     {
-        Ok(_) => {
-            tracing::info!(user_id = %user.id, "cron: push sent");
+        Ok(response) => {
+            tracing::info!(user_id = %user.id, %response, "cron: push sent");
             if let Err(error) = user_data_db::mark_alerted(state.get_pool(), user.id, today).await {
                 tracing::error!(user_id = %user.id, %error, "cron: failed to record alert");
             }
