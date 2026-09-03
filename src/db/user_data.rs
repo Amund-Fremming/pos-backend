@@ -27,12 +27,28 @@ pub async fn get_by_id(pool: &Pool<Postgres>, id: Uuid) -> Result<UserData, sqlx
     .await
 }
 
+/// Upserts on `push_token` — re-onboarding on the same device (e.g. after
+/// "start over", which only clears local app state) reuses the same Expo
+/// push token, so this replaces that row instead of hitting the UNIQUE
+/// constraint on a plain insert.
 pub async fn create(pool: &Pool<Postgres>, user_data: &UserData) -> Result<UserData, sqlx::Error> {
     sqlx::query_as!(
         UserData,
         r#"INSERT INTO user_data
                (home_time, home_lat, home_lon, home_display, work_time, work_lat, work_lon, work_display, commute_minutes, alert_days, push_token)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+           ON CONFLICT (push_token) DO UPDATE SET
+               home_time = EXCLUDED.home_time,
+               home_lat = EXCLUDED.home_lat,
+               home_lon = EXCLUDED.home_lon,
+               home_display = EXCLUDED.home_display,
+               work_time = EXCLUDED.work_time,
+               work_lat = EXCLUDED.work_lat,
+               work_lon = EXCLUDED.work_lon,
+               work_display = EXCLUDED.work_display,
+               commute_minutes = EXCLUDED.commute_minutes,
+               alert_days = EXCLUDED.alert_days,
+               last_alerted_date = NULL
            RETURNING id, home_time, home_lat, home_lon, home_display AS "home_display!",
                      work_time, work_lat, work_lon, work_display AS "work_display!", commute_minutes, alert_days, push_token, last_alerted_date"#,
         user_data.home_time,
