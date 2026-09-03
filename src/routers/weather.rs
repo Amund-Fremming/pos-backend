@@ -38,7 +38,7 @@ async fn get_weather(
         "travel values"
     );
 
-    state
+    let weather = state
         .get_weather_client()
         .get_weather(
             user.home_time,
@@ -50,6 +50,10 @@ async fn get_weather(
             user.commute_minutes,
         )
         .await
-        .map(Json)
-        .map_err(|_| StatusCode::BAD_GATEWAY)
+        .map_err(|_| StatusCode::BAD_GATEWAY)?;
+
+    // 🚨 TODO - remove this to undo mock
+    let weather = Weather::Rainy;
+
+    Ok(Json(weather))
 }

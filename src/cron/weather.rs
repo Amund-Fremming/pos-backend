@@ -1,7 +1,8 @@
 use std::sync::Arc;
 use std::time::Duration as StdDuration;
 
-use chrono::{Datelike, Duration, Local, NaiveDate, Timelike};
+use chrono::{Datelike, Duration, NaiveDate, Timelike, Utc};
+use chrono_tz::Europe::Oslo;
 
 use crate::clients::weather_client::{Weather, WeatherClient};
 use crate::db::{UserData, user_data as user_data_db};
@@ -9,6 +10,12 @@ use crate::state::AppState;
 
 const TICK_INTERVAL: StdDuration = StdDuration::from_secs(5 * 60);
 const LOOKAHEAD: Duration = Duration::minutes(15);
+
+/// Users enter home/work times as Oslo wall-clock, so alerts must be computed
+/// against Oslo local time — not the host's system timezone (e.g. UTC in Docker).
+fn now_oslo() -> chrono::DateTime<chrono_tz::Tz> {
+    Utc::now().with_timezone(&Oslo)
+}
 
 /// Runs forever: every 5 minutes, on the round clock mark, alerts anyone
 /// whose home/work departure is exactly 15 minutes out — but only if it's
@@ -25,7 +32,7 @@ pub async fn spawn(state: Arc<AppState>) {
 /// Sleeps until the next round 5-minute wall-clock mark (:00, :05, :10, ...),
 /// so ticks land on times like 06:45 rather than wherever the process booted.
 async fn align_to_tick() {
-    let now = Local::now();
+    let now = now_oslo();
     let interval_secs = TICK_INTERVAL.as_secs() as i64;
     let secs_into_hour = (now.minute() as i64) * 60 + now.second() as i64;
     let remainder = secs_into_hour % interval_secs;
@@ -49,7 +56,7 @@ async fn run_once(state: &Arc<AppState>) {
     };
     tracing::trace!(count = users.len(), "cron: loaded users with push token");
 
-    let now = Local::now();
+    let now = now_oslo();
     let today = now.date_naive();
     let weekday = now.weekday().num_days_from_monday() as usize;
     let window_start = (now + LOOKAHEAD).time();
