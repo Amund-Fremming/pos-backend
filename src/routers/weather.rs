@@ -52,8 +52,5 @@ async fn get_weather(
         .await
         .map_err(|_| StatusCode::BAD_GATEWAY)?;
 
-    // 🚨 TODO - remove this to undo mock
-    let weather = Weather::Rainy;
-
     Ok(Json(weather))
 }
