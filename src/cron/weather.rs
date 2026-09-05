@@ -1,21 +1,15 @@
 use std::sync::Arc;
 use std::time::Duration as StdDuration;
 
-use chrono::{Datelike, Duration, NaiveDate, Timelike, Utc};
-use chrono_tz::Europe::Oslo;
+use chrono::{Datelike, Duration, NaiveDate, Timelike};
 
 use crate::clients::weather_client::{Weather, WeatherClient};
 use crate::db::{UserData, user_data as user_data_db};
+use crate::schedule::now_oslo;
 use crate::state::AppState;
 
 const TICK_INTERVAL: StdDuration = StdDuration::from_secs(5 * 60);
 const LOOKAHEAD: Duration = Duration::minutes(15);
-
-/// Users enter home/work times as Oslo wall-clock, so alerts must be computed
-/// against Oslo local time — not the host's system timezone (e.g. UTC in Docker).
-fn now_oslo() -> chrono::DateTime<chrono_tz::Tz> {
-    Utc::now().with_timezone(&Oslo)
-}
 
 /// Runs forever: every 5 minutes, on the round clock mark, alerts anyone
 /// whose home/work departure is exactly 15 minutes out — but only if it's
@@ -97,6 +91,7 @@ async fn maybe_notify(state: &Arc<AppState>, user: &UserData, today: NaiveDate) 
     let weather = match state
         .get_weather_client()
         .get_weather(
+            today,
             user.home_time,
             user.home_lat,
             user.home_lon,

@@ -8,13 +8,15 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::clients::weather_client::Weather;
+use crate::clients::weather_client::{JacketInterval, Weather};
 use crate::db::user_data as user_data_db;
+use crate::schedule;
 use crate::state::AppState;
 
 pub fn weather_router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/{id}", get(get_weather))
+        .route("/{id}/jacket-intervals", get(get_jacket_intervals))
         .with_state(state)
 }
 
@@ -41,6 +43,7 @@ async fn get_weather(
     let weather = state
         .get_weather_client()
         .get_weather(
+            schedule::now_oslo().date_naive(),
             user.home_time,
             user.home_lat,
             user.home_lon,
@@ -53,4 +56,26 @@ async fn get_weather(
         .map_err(|_| StatusCode::BAD_GATEWAY)?;
 
     Ok(Json(weather))
+}
+
+/// Off-day view: today's wet stretches around home, for days the user isn't commuting.
+async fn get_jacket_intervals(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Vec<JacketInterval>>, StatusCode> {
+    let user = user_data_db::get_by_id(state.get_pool(), id)
+        .await
+        .map_err(|_| StatusCode::NOT_FOUND)?;
+
+    let intervals = state
+        .get_weather_client()
+        .jacket_intervals(
+            schedule::now_oslo().date_naive(),
+            user.home_lat,
+            user.home_lon,
+        )
+        .await
+        .map_err(|_| StatusCode::BAD_GATEWAY)?;
+
+    Ok(Json(intervals))
 }

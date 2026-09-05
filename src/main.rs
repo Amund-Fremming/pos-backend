@@ -2,6 +2,7 @@ mod clients;
 mod cron;
 mod db;
 mod routers;
+mod schedule;
 mod state;
 
 use std::sync::Arc;
