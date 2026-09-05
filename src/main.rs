@@ -9,8 +9,7 @@ use std::time::Duration;
 
 use axum::{Json, Router, routing::get};
 
-use routers::user_data::user_data_router;
-use routers::weather::weather_router;
+use routers::{user_data::user_data_router, weather::weather_router};
 use serde_json::json;
 use state::AppState;
 
